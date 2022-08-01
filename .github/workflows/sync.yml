@@ -1,0 +1,54 @@
+on:
+  schedule:
+    - cron:  '0 7 * * *'
+    # scheduled at 07:00 every Monday and Thursday
+
+  workflow_dispatch:  # click the button on Github repo!
+
+
+jobs:
+  sync_with_upstream:
+    runs-on: ubuntu-latest
+    name: Sync master with upstream latest
+
+    steps:
+    # Step 1: run a standard checkout action, provided by github
+    - name: Checkout master
+      uses: actions/checkout@v2
+      with:
+        ref: master
+        token: ${{ secrets.COMMIT_TOKEN }}
+
+    # Step 2: run this sync action - specify the upstream repo, upstream branch to sync with, and target sync branch
+    #- name: Pull (Fast-Forward) upstream changes
+    #  id: sync
+    #  uses: aormsby/Fork-Sync-With-Upstream-action@v3.2
+    #  with:
+    #    upstream_sync_repo: nvm-sh/nvm
+    #    upstream_sync_branch: master
+    #    target_sync_branch: master
+    #    shallow_since: '10 years'
+    #    upstream_pull_args: '--ff-only --tags'
+    #    target_repo_token: ${{ secrets.COMMIT_TOKEN }}   # optional, for accessing repos that require authentication
+
+    - name: Pull Sync
+      id: psync
+      uses: TobKed/github-forks-sync-action@master
+      with:
+        github_token: ${{ secrets.COMMIT_TOKEN }}
+        upstream_repository: nvm-sh/nvm
+        target_repository: ineo6/nvm
+        upstream_branch: master
+        target_branch: master
+        force: true
+        tags: true
+
+    # Step 3: Display a message if 'sync' step had new commits (simple test)
+    - name: Check for new commits
+      # if: steps.sync.outputs.has_new_commits
+      uses: wearerequired/git-mirror-action@v1
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      with:
+        source-repo: 'git@github.com:ineo6/nvm.git'
+        destination-repo: 'git@gitlab.com:mirrorx/nvm.git'
